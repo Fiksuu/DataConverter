@@ -41,6 +41,7 @@ def save_xml(data, file_path):
     try:
         root = dict_to_xml('root', data)
         tree = ET.ElementTree(root)
+        indent_xml(root)  # Dodajemy formatowanie
         tree.write(file_path, encoding='utf-8', xml_declaration=True)
     except Exception as e:
         print(f"Failed to save XML file: {e}")
@@ -73,6 +74,21 @@ def dict_to_xml(tag, d):
             child.text = str(val)
         elem.append(child)
     return elem
+
+def indent_xml(elem, level=0):
+    i = "\n" + level * "    "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "    "
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+        for elem in elem:
+            indent_xml(elem, level + 1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
 
 if __name__ == "__main__":
     input_path, output_path = parse_arguments()

@@ -1,5 +1,4 @@
 import sys
-import os
 import json
 import xml.etree.ElementTree as ET
 import yaml
@@ -40,8 +39,9 @@ def load_xml(file_path):
 
 def save_xml(data, file_path):
     try:
-        tree = ET.ElementTree(data)
-        tree.write(file_path)
+        root = dict_to_xml('root', data)
+        tree = ET.ElementTree(root)
+        tree.write(file_path, encoding='utf-8', xml_declaration=True)
     except Exception as e:
         print(f"Failed to save XML file: {e}")
         sys.exit(1)
@@ -63,7 +63,16 @@ def save_yaml(data, file_path):
         print(f"Failed to save YAML file: {e}")
         sys.exit(1)
 
-
+def dict_to_xml(tag, d):
+    elem = ET.Element(tag)
+    for key, val in d.items():
+        child = ET.Element(key)
+        if isinstance(val, dict):
+            child.extend(dict_to_xml(key, val))
+        else:
+            child.text = str(val)
+        elem.append(child)
+    return elem
 
 if __name__ == "__main__":
     input_path, output_path = parse_arguments()

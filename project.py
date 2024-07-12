@@ -2,14 +2,7 @@ import sys
 import json
 import xml.etree.ElementTree as ET
 import yaml
-
-def parse_arguments():
-    if len(sys.argv) != 3:
-        print("Usage: program.exe pathFile1.x pathFile2.y")
-        sys.exit(1)
-    input_path = sys.argv[1]
-    output_path = sys.argv[2]
-    return input_path, output_path
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog, QMessageBox
 
 def load_json(file_path):
     try:
@@ -90,26 +83,83 @@ def indent_xml(elem, level=0):
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
 
+class DataConverterUI(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.initUI()
+
+    def initUI(self):
+        self.setWindowTitle('Data Converter')
+
+        layout = QVBoxLayout()
+
+        self.label = QLabel('Select input and output files:')
+        layout.addWidget(self.label)
+
+        self.inputButton = QPushButton('Select Input File')
+        self.inputButton.clicked.connect(self.select_input_file)
+        layout.addWidget(self.inputButton)
+
+        self.outputButton = QPushButton('Select Output File')
+        self.outputButton.clicked.connect(self.select_output_file)
+        layout.addWidget(self.outputButton)
+
+        self.convertButton = QPushButton('Convert')
+        self.convertButton.clicked.connect(self.convert_files)
+        layout.addWidget(self.convertButton)
+
+        self.setLayout(layout)
+
+        self.input_file = None
+        self.output_file = None
+
+    def select_input_file(self):
+        options = QFileDialog.Options()
+        file, _ = QFileDialog.getOpenFileName(self, "Select Input File", "", "All Files (*);;JSON Files (*.json);;XML Files (*.xml);;YAML Files (*.yaml *.yml)", options=options)
+        if file:
+            self.input_file = file
+            self.label.setText(f"Selected input file: {file}")
+
+    def select_output_file(self):
+        options = QFileDialog.Options()
+        file, _ = QFileDialog.getSaveFileName(self, "Select Output File", "", "JSON Files (*.json);;XML Files (*.xml);;YAML Files (*.yaml *.yml)", options=options)
+        if file:
+            self.output_file = file
+            self.label.setText(f"Selected output file: {file}")
+
+    def convert_files(self):
+        if not self.input_file or not self.output_file:
+            QMessageBox.warning(self, "Error", "Please select both input and output files.")
+            return
+
+        try:
+            if self.input_file.endswith('.json'):
+                data = load_json(self.input_file)
+            elif self.input_file.endswith('.xml'):
+                data = load_xml(self.input_file)
+            elif self.input_file.endswith('.yaml') or self.input_file.endswith('.yml'):
+                data = load_yaml(self.input_file)
+            else:
+                QMessageBox.warning(self, "Error", "Unsupported input format")
+                return
+
+            if self.output_file.endswith('.json'):
+                save_json(data, self.output_file)
+            elif self.output_file.endswith('.xml'):
+                save_xml(data, self.output_file)
+            elif self.output_file.endswith('.yaml') or self.output_file.endswith('.yml'):
+                save_yaml(data, self.output_file)
+            else:
+                QMessageBox.warning(self, "Error", "Unsupported output format")
+                return
+
+            QMessageBox.information(self, "Success", f"Data converted and saved to {self.output_file}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to convert files: {e}")
+
 if __name__ == "__main__":
-    input_path, output_path = parse_arguments()
-    if input_path.endswith('.json'):
-        data = load_json(input_path)
-    elif input_path.endswith('.xml'):
-        data = load_xml(input_path)
-    elif input_path.endswith('.yaml') or input_path.endswith('.yml'):
-        data = load_yaml(input_path)
-    else:
-        print("Unsupported input format")
-        sys.exit(1)
-
-    if output_path.endswith('.json'):
-        save_json(data, output_path)
-    elif output_path.endswith('.xml'):
-        save_xml(data, output_path)
-    elif output_path.endswith('.yaml') or output_path.endswith('.yml'):
-        save_yaml(data, output_path)
-    else:
-        print("Unsupported output format")
-        sys.exit(1)
-
-    print(f"Data converted and saved to {output_path}")
+    app = QApplication(sys.argv)
+    ex = DataConverterUI()
+    ex.show()
+    sys.exit(app.exec_())
